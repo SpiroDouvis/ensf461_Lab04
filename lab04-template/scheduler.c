@@ -91,19 +91,60 @@ void read_job_config(const char *filename)
 void policy_SJF()
 {
     printf("Execution trace with SJF:\n");
-    struct job jobqueue[numofjobs];
     int time = 0;
 
-    struct job *ptr = head;
-    do
-    {
-        printf("t=%d: [Job %d] arrived at [%d], ran for: [1]", time, ptr->id, ptr->arrival, ptr->length);
-        ptr = ptr->next;
-    } while (ptr != NULL);
     // TODO: implement SJF policy
+
+    while (head != NULL) {
+        struct job* shortest_job = head;
+        struct job* prev = NULL;
+        struct job* ptr = head;
+
+        // find shortest node in list and set prev to previous node
+        while (ptr->next != NULL && ptr->next->arrival <= time) {
+            if (ptr->next->length < shortest_job->length) {
+                shortest_job = ptr->next;
+            }
+            prev = ptr;
+            ptr = ptr->next;
+        }
+
+        if (head->next != NULL && prev == NULL && time == 0) {
+            while (ptr->next->arrival > time)
+                time++;
+            continue;
+        }
+
+        printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n", time, shortest_job->id, shortest_job->arrival, shortest_job->length);
+        time += shortest_job->length;
+
+        if (prev == NULL) { // only node that can run
+            if (head->next != NULL) {
+                while (ptr->next->arrival > time)
+                    time++;
+                head = head->next;
+            }
+            else {
+                head = NULL;   
+            }
+        }
+        else if (shortest_job->next == NULL) { // last node in list
+            prev->next = NULL;
+        }
+        else if (shortest_job == head) { // first node in list
+            head = shortest_job->next;
+        }
+        else { // middle node
+            prev->next = shortest_job->next;
+        }
+        free(shortest_job);
+
+    }
+    
 
     printf("End of execution with SJF.\n");
 }
+
 
 void policy_STCF()
 {
