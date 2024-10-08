@@ -6,40 +6,44 @@
 #include <limits.h>
 #include <time.h>
 
-#define min(a,b) (((a)<(b))?(a):(b))
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 
 // total jobs
 int numofjobs = 0;
 
-struct job {
+struct job
+{
     // job id is ordered by the arrival; jobs arrived first have smaller job id, always increment by 1
     int id;
     int arrival; // arrival time; safely assume the time unit has the minimal increment of 1
     int length;
     int tickets; // number of tickets for lottery scheduling
     // TODO: add any other metadata you need to track here
-    struct job* next;
+    struct job *next;
 };
 
 // the workload list
-struct job* head = NULL;
+struct job *head = NULL;
 
-
-void append_to(struct job** head_pointer, int arrival, int length, int tickets) {
+void append_to(struct job **head_pointer, int arrival, int length, int tickets)
+{
 
     // TODO: create a new job and init it with proper data
-    struct job* new = (struct job*)malloc(sizeof(struct job));
-    numofjobs++;
+    struct job *new = (struct job *)malloc(sizeof(struct job));
+    new->id = numofjobs++;
     new->arrival = arrival;
     new->length = length;
     new->tickets = tickets;
 
-    if (*head_pointer == NULL) {
+    if (*head_pointer == NULL)
+    {
         *head_pointer = new;
     }
-    else {
-        struct job* ptr = *head_pointer;
-        while (ptr->next != NULL) {
+    else
+    {
+        struct job *ptr = *head_pointer;
+        while (ptr->next != NULL)
+        {
             ptr = ptr->next;
         }
         ptr->next = new;
@@ -47,18 +51,17 @@ void append_to(struct job** head_pointer, int arrival, int length, int tickets) 
     return;
 }
 
-
-void read_job_config(const char* filename)
+void read_job_config(const char *filename)
 {
-    FILE* fp;
-    char* line = NULL;
+    FILE *fp;
+    char *line = NULL;
     size_t len = 0;
     ssize_t read;
     int tickets = 0;
 
-    char* delim = ",";
-    char* arrival = NULL;
-    char* length = NULL;
+    char *delim = ",";
+    char *arrival = NULL;
+    char *length = NULL;
 
     // TODO, error checking
     fp = fopen(filename, "r");
@@ -76,11 +79,14 @@ void read_job_config(const char* filename)
 
         append_to(&head, atoi(arrival), atoi(length), tickets);
     }
-
+    if (head == NULL)
+    {
+        exit(EXIT_FAILURE);
+    }
     fclose(fp);
-    if (line) free(line);
+    if (line)
+        free(line);
 }
-
 
 void policy_SJF()
 {
@@ -88,17 +94,16 @@ void policy_SJF()
     struct job jobqueue[numofjobs];
     int time = 0;
 
-    struct job* ptr = head;
-    do {
+    struct job *ptr = head;
+    do
+    {
         printf("t=%d: [Job %d] arrived at [%d], ran for: [1]", time, ptr->id, ptr->arrival, ptr->length);
         ptr = ptr->next;
     } while (ptr != NULL);
     // TODO: implement SJF policy
 
     printf("End of execution with SJF.\n");
-
 }
-
 
 void policy_STCF()
 {
@@ -109,7 +114,6 @@ void policy_STCF()
     printf("End of execution with STCF.\n");
 }
 
-
 void policy_RR(int slice)
 {
     printf("Execution trace with RR:\n");
@@ -118,7 +122,6 @@ void policy_RR(int slice)
 
     printf("End of execution with RR.\n");
 }
-
 
 void policy_LT(int slice)
 {
@@ -137,28 +140,90 @@ void policy_LT(int slice)
     // And pick the winning job using the linked list approach discussed in class, or equivalent
 
     printf("End of execution with LT.\n");
-
 }
 
+void policy_FIFO(int analysis)
+{
+    if (analysis)
+    {
+        printf("Begin analyzing FIFO:\n");
+    }
+    else
+    {
+        printf("Execution trace with FIFO:\n");
+    }
 
-void policy_FIFO() {
-    printf("Execution trace with FIFO:\n");
+    struct job *current_job = head;
+    int current_time = 0;
 
-    // TODO: implement FIFO policy
+    int total_response_time = 0;
+    int total_turnaround_time = 0;
+    int total_wait_time = 0;
+    int job_count = 0;
 
-    printf("End of execution with FIFO.\n");
+    while (current_job != NULL)
+    {
+
+        if (current_time < current_job->arrival)
+        {
+            current_time = current_job->arrival;
+        }
+
+        if (analysis)
+        {
+            int response_time = current_time - current_job->arrival;
+            int turnaround_time = response_time + current_job->length;
+            int wait_time = response_time;
+
+            printf("Job %d -- Response time: %d  Turnaround: %d  Wait: %d\n",
+                   current_job->id, response_time, turnaround_time, wait_time);
+
+            total_response_time += response_time;
+            total_turnaround_time += turnaround_time;
+            total_wait_time += wait_time;
+            job_count++;
+        }
+        else
+        {
+            printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n",
+                   current_time, current_job->id, current_job->arrival, current_job->length);
+        }
+
+        current_time += current_job->length;
+
+        current_job = current_job->next;
+    }
+
+    if (analysis)
+    {
+
+        double avg_response_time = (double)total_response_time / job_count;
+        double avg_turnaround_time = (double)total_turnaround_time / job_count;
+        double avg_wait_time = (double)total_wait_time / job_count;
+
+        printf("Average -- Response: %.2f  Turnaround %.2f  Wait %.2f\n",
+               avg_response_time, avg_turnaround_time, avg_wait_time);
+    }
+
+    if (analysis)
+    {
+        printf("End analyzing FIFO.\n");
+    }
+    else
+    {
+        printf("End of execution with FIFO.\n");
+    }
 }
 
-
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
 
     static char usage[] = "usage: %s analysis policy slice trace\n";
 
     int analysis;
-    char* pname;
-    char* tname;
+    char *pname;
+    char *tname;
     int slice;
-
 
     if (argc < 5)
     {
@@ -181,11 +246,11 @@ int main(int argc, char** argv) {
 
     read_job_config(tname);
 
-    if (strcmp(pname, "FIFO") == 0) {
-        policy_FIFO();
-        if (analysis == 1) {
-            // TODO: perform analysis
-        }
+    if (strcmp(pname, "FIFO") == 0)
+    {
+        policy_FIFO(0);
+        if (analysis)
+            policy_FIFO(analysis);
     }
     else if (strcmp(pname, "SJF") == 0)
     {
