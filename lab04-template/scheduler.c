@@ -18,31 +18,47 @@ struct job {
     int length;
     int tickets; // number of tickets for lottery scheduling
     // TODO: add any other metadata you need to track here
-    struct job *next;
+    struct job* next;
 };
 
 // the workload list
-struct job *head = NULL;
+struct job* head = NULL;
 
 
-void append_to(struct job **head_pointer, int arrival, int length, int tickets){
+void append_to(struct job** head_pointer, int arrival, int length, int tickets) {
 
     // TODO: create a new job and init it with proper data
+    struct job* new = (struct job*)malloc(sizeof(struct job));
+    numofjobs++;
+    new->arrival = arrival;
+    new->length = length;
+    new->tickets = tickets;
+
+    if (*head_pointer == NULL) {
+        *head_pointer = new;
+    }
+    else {
+        struct job* ptr = *head_pointer;
+        while (ptr->next != NULL) {
+            ptr = ptr->next;
+        }
+        ptr->next = new;
+    }
     return;
 }
 
 
 void read_job_config(const char* filename)
 {
-    FILE *fp;
-    char *line = NULL;
+    FILE* fp;
+    char* line = NULL;
     size_t len = 0;
     ssize_t read;
-    int tickets  = 0;
+    int tickets = 0;
 
     char* delim = ",";
-    char *arrival = NULL;
-    char *length = NULL;
+    char* arrival = NULL;
+    char* length = NULL;
 
     // TODO, error checking
     fp = fopen(filename, "r");
@@ -52,8 +68,8 @@ void read_job_config(const char* filename)
     // TODO: if the file is empty, we should just exit with error
     while ((read = getline(&line, &len, fp)) != -1)
     {
-        if( line[read-1] == '\n' )
-            line[read-1] =0;
+        if (line[read - 1] == '\n')
+            line[read - 1] = 0;
         arrival = strtok(line, delim);
         length = strtok(NULL, delim);
         tickets += 100;
@@ -69,7 +85,14 @@ void read_job_config(const char* filename)
 void policy_SJF()
 {
     printf("Execution trace with SJF:\n");
+    struct job jobqueue[numofjobs];
+    int time = 0;
 
+    struct job* ptr = head;
+    do {
+        printf("t=%d: [Job %d] arrived at [%d], ran for: [1]", time, ptr->id, ptr->arrival, ptr->length);
+        ptr = ptr->next;
+    } while (ptr != NULL);
     // TODO: implement SJF policy
 
     printf("End of execution with SJF.\n");
@@ -118,7 +141,7 @@ void policy_LT(int slice)
 }
 
 
-void policy_FIFO(){
+void policy_FIFO() {
     printf("Execution trace with FIFO:\n");
 
     // TODO: implement FIFO policy
@@ -127,13 +150,13 @@ void policy_FIFO(){
 }
 
 
-int main(int argc, char **argv){
+int main(int argc, char** argv) {
 
     static char usage[] = "usage: %s analysis policy slice trace\n";
 
     int analysis;
-    char *pname;
-    char *tname;
+    char* pname;
+    char* tname;
     int slice;
 
 
@@ -141,7 +164,7 @@ int main(int argc, char **argv){
     {
         fprintf(stderr, "missing variables\n");
         fprintf(stderr, usage, argv[0]);
-		exit(1);
+        exit(1);
     }
 
     // if 0, we don't analysis the performance
@@ -158,15 +181,16 @@ int main(int argc, char **argv){
 
     read_job_config(tname);
 
-    if (strcmp(pname, "FIFO") == 0){
+    if (strcmp(pname, "FIFO") == 0) {
         policy_FIFO();
-        if (analysis == 1){
+        if (analysis == 1) {
             // TODO: perform analysis
         }
     }
     else if (strcmp(pname, "SJF") == 0)
     {
         // TODO
+        policy_SJF();
     }
     else if (strcmp(pname, "STCF") == 0)
     {
@@ -181,5 +205,5 @@ int main(int argc, char **argv){
         // TODO
     }
 
-	exit(0);
+    exit(0);
 }
