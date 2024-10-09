@@ -88,10 +88,19 @@ void read_job_config(const char *filename)
         free(line);
 }
 
-void policy_SJF()
+void policy_SJF(int analysis)
 {
     printf("Execution trace with SJF:\n");
+
     int time = 0;
+
+    int total_response_time = 0;
+    int total_turnaround_time = 0;
+    int total_wait_time = 0;
+    int job_count = 0;
+    int** results;
+    if (analysis)
+        results = (int**)malloc(sizeof(int*) * numofjobs);
 
     // TODO: implement SJF policy
 
@@ -115,7 +124,27 @@ void policy_SJF()
             continue;
         }
 
+        if (analysis) {
+            results[shortest_job->id] = (int*)malloc(sizeof(int[4]));
+
+            int response_time = time - shortest_job->arrival;
+            int turnaround_time = response_time + shortest_job->length;
+            int wait_time = response_time;
+
+            results[shortest_job->id][0] = shortest_job->id;
+            results[shortest_job->id][1] = response_time;
+            results[shortest_job->id][2] = turnaround_time;
+            results[shortest_job->id][3] = wait_time;
+        
+
+            total_response_time += response_time;
+            total_turnaround_time += turnaround_time;
+            total_wait_time += wait_time;
+            job_count++;
+        }
         printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n", time, shortest_job->id, shortest_job->arrival, shortest_job->length);
+        
+
         time += shortest_job->length;
 
         if (prev == NULL) { // only node that can run
@@ -125,7 +154,7 @@ void policy_SJF()
                 head = head->next;
             }
             else {
-                head = NULL;   
+                head = NULL;
             }
         }
         else if (shortest_job->next == NULL) { // last node in list
@@ -138,11 +167,29 @@ void policy_SJF()
             prev->next = shortest_job->next;
         }
         free(shortest_job);
+    }
+    printf("End of execution with SJF.\n");
+
+    if (analysis) {
+        printf("Begin analyzing SJF:\n");
+
+        for (int i = 0; i < numofjobs; i++) {
+            printf("Job %d -- Response time: %d  Turnaround: %d  Wait: %d\n",
+                results[i][0], results[i][1], results[i][2], results[i][3]);
+            free(results[i]);
+        }
+        free(results);
+
+        double avg_response_time = (double)total_response_time / job_count;
+        double avg_turnaround_time = (double)total_turnaround_time / job_count;
+        double avg_wait_time = (double)total_wait_time / job_count;
+
+        printf("Average -- Response: %.2f  Turnaround %.2f  Wait %.2f\n",
+            avg_response_time, avg_turnaround_time, avg_wait_time);
+
+        printf("End analyzing SJF.\n");
 
     }
-    
-
-    printf("End of execution with SJF.\n");
 }
 
 
@@ -295,8 +342,7 @@ int main(int argc, char **argv)
     }
     else if (strcmp(pname, "SJF") == 0)
     {
-        // TODO
-        policy_SJF();
+        policy_SJF(analysis);
     }
     else if (strcmp(pname, "STCF") == 0)
     {
