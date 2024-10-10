@@ -203,28 +203,29 @@ void policy_SJF(int analysis)
 
 void policy_STCF(int analysis)
 {
-    printf("Execution trace with STCF:\n");
-
+    if(analysis){ 
+        printf("Begin analyzing STCF:\n");
+    }else{
+        printf("Execution trace with STCF:\n");
+    }
+      
     int current_time=0;
     int total_response_time=0;
     int total_turnaround_time=0;
     int total_wait_time=0;
     int job_count=0;
-
     int **results=NULL;
     if(analysis){
         results = (int**)malloc(sizeof(int*)*numofjobs);
     }
     //ARRAY OF PTRS
 
-    struct job *ptr=head;
-
     while (head!=NULL){
         //continues until all jobs are processed!!!
         struct job *shortest_job=NULL;
         struct job *prev=NULL;
         struct job *old_shortest=NULL;
-        ptr=head;//reset ptr to head each iteration
+        struct job *ptr=head;
 
         
         while(ptr!=NULL&&ptr->arrival<=current_time){
@@ -239,6 +240,7 @@ void policy_STCF(int analysis)
             //ITERATE... 
     
         }
+        
         if(shortest_job==NULL){
             current_time++;
             continue;
@@ -295,12 +297,11 @@ void policy_STCF(int analysis)
         printf("Average -- Response: %.2f  Turnaround %.2f  Wait %.2f\n",avg_response_time,avg_turnaround_time,avg_wait_time);
     }
     if (analysis) {
-    printf("Begin analyzing STCF:\n");
-    if (results != NULL) {
-        for (int i = 0; i < numofjobs; i++) {
-            if (results[i] != NULL) {
-                printf("Job %d -- Response time: %d  Turnaround: %d  Wait: %d\n", results[i][0], results[i][1], results[i][2], results[i][3]);
-                free(results[i]);
+        if (results != NULL) {
+            for (int i = 0; i < numofjobs; i++) {
+                if (results[i] != NULL) {
+                    printf("Job %d -- Response time: %d  Turnaround: %d  Wait: %d\n", results[i][0], results[i][1], results[i][2], results[i][3]);
+                    free(results[i]);
             }
         }
         free(results);
@@ -455,7 +456,7 @@ int main(int argc, char **argv)
     }
     else if (strcmp(pname, "STCF") == 0)
     {
-        // TODO
+        policy_STCF(analysis);
     }
     else if (strcmp(pname, "RR") == 0)
     {
