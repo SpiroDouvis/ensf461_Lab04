@@ -356,13 +356,129 @@ void policy_STCF(int analysis)
 }
 
 
-void policy_RR(int slice)
+void policy_RR(int slice, int analysis)
 {
     printf("Execution trace with RR:\n");
 
+    int time = 0;
+
+    int total_response_time = 0;
+    int total_turnaround_time = 0;
+    int total_wait_time = 0;
+    int job_count = 0;
+    int** results;
+    if (analysis)
+        results = (int**)malloc(sizeof(int*) * numofjobs);
+
+    for (int i = 0; i < numofjobs; i++) {
+        if (analysis) {
+            results[i] = NULL;
+        }
+    }
+
     // TODO: implement RR policy
+        
+    struct job* current_job = head;
+
+    while (head != NULL) {
+
+        
+        if (head->arrival > time) {
+            time = head->arrival;
+        }
+
+        if (current_job == NULL) {
+            current_job = head;
+        }
+
+        // run job and print
+        if (current_job->length > 0) {
+            int run_time = min(slice, current_job->length);
+
+
+            if (analysis) {
+                if (results[current_job->id] == NULL) {
+                    results[current_job->id] = (int*)malloc(sizeof(int[4]));
+                    int response_time = time - current_job->arrival;
+                    results[current_job->id][0] = current_job->id;
+                    results[current_job->id][1] = response_time;
+                    total_response_time += response_time;
+                }
+            }
+
+            printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n", time, current_job->id, current_job->arrival, run_time);
+            
+            current_job->length -= run_time;
+            time += run_time;
+        }
+        
+
+
+        // if job is done, remove it from the list
+        if (current_job->length <= 0) {
+            int turnaround_time = time - current_job->arrival;
+            int wait_time = turnaround_time - current_job->original_length;
+
+            total_turnaround_time += turnaround_time;
+            total_wait_time += wait_time;
+            job_count++;
+
+            if (analysis) {
+                if (results[current_job->id] == NULL) {
+                    results[current_job->id] = (int*)malloc(sizeof(int[4]));
+                    int response_time = time - current_job->arrival;
+                    results[current_job->id][0] = current_job->id;
+                    results[current_job->id][1] = response_time;
+                }
+                results[current_job->id][2] = turnaround_time;
+                results[current_job->id][3] = wait_time;
+            }
+
+            struct job* temp = current_job;
+
+            if (head == temp) {
+                head = head->next;
+            } else {
+                struct job* ptr = head;
+                while (ptr->next != temp) {
+                    ptr = ptr->next;
+                }
+                ptr->next = temp->next;
+            }
+
+            free(temp);
+        } 
+
+        if (current_job->next == NULL || current_job->next->arrival >= time) {
+            current_job = head;
+        } else {
+            current_job = current_job->next;
+        }
+
+    }
 
     printf("End of execution with RR.\n");
+
+    if (analysis) {
+    printf("Begin analyzing RR:\n");
+
+        for (int i = 0; i < numofjobs; i++) {
+            printf("Job %d -- Response time: %d  Turnaround: %d  Wait: %d\n",
+                results[i][0], results[i][1], results[i][2], results[i][3]);
+            free(results[i]);
+        }
+        free(results);
+
+        double avg_response_time = (double)total_response_time / job_count;
+        double avg_turnaround_time = (double)total_turnaround_time / job_count;
+        double avg_wait_time = (double)total_wait_time / job_count;
+
+        printf("Average -- Response: %.2f  Turnaround %.2f  Wait %.2f\n",
+            avg_response_time, avg_turnaround_time, avg_wait_time);
+
+        printf("End analyzing RR.\n");
+
+    }
 }
 
 void policy_LT(int slice)
@@ -504,7 +620,7 @@ int main(int argc, char **argv)
     }
     else if (strcmp(pname, "RR") == 0)
     {
-        // TODO
+        policy_RR(slice, analysis);
     }
     else if (strcmp(pname, "LT") == 0)
     {
