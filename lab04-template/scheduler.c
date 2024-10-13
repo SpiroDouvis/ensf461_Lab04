@@ -203,11 +203,7 @@ void policy_SJF(int analysis)
 
 void policy_STCF(int analysis)
 {
-    if(analysis){ 
-        printf("Begin analyzing STCF:\n");
-    }else{
-        printf("Execution trace with STCF:\n");
-    }
+    printf("Execution trace with STCF:\n");
       
     int current_time=0;
     int total_response_time=0;
@@ -217,8 +213,13 @@ void policy_STCF(int analysis)
     int **results=NULL;
     if(analysis){
         results = (int**)malloc(sizeof(int*)*numofjobs);
+        for (int i=0;i<numofjobs;i++){
+            results[i]=NULL;
+        }
     }
     //ARRAY OF PTRS
+
+    int lastJobId = -1;
 
     while (head!=NULL){
         //continues until all jobs are processed!!!
@@ -241,11 +242,19 @@ void policy_STCF(int analysis)
     
         }
         
-        if(shortest_job==NULL){
+        if(shortest_job==NULL || shortest_job->arrival>current_time){
             current_time++;
             continue;
         }
         //IF NO JOBS ARRIVED - ADD AND RELOOP
+
+        if (analysis){
+            if (results[shortest_job->id]==NULL) {
+                results[shortest_job->id]=(int*)malloc(sizeof(int[4]));
+                int response_time=current_time-shortest_job->arrival;
+                results[shortest_job->id][1]=response_time;
+            }
+        }
 
         if (shortest_job->length >0){
             //IF SHORTEST JOB NOT DONE/HAS REMAINING TIME...
@@ -254,8 +263,12 @@ void policy_STCF(int analysis)
     
                 //ADD RESPONSE TIME OF SHORTEST JOB IF IT HASNT YET RUN- THIS IS FIRST TIME RUNNING
             }
-            printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n",current_time,shortest_job->id,shortest_job->arrival,shortest_job->length);
+            if (lastJobId!=shortest_job->id){
+                //IF LAST JOB IS NOT THE SAME AS CURRENT JOB
+                printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n",current_time,shortest_job->id,shortest_job->arrival,shortest_job->length);
+            }
             shortest_job->length--;
+            lastJobId = shortest_job->id;
             //DECREMENT REMAINING LENGTH
             current_time++;
         }
@@ -271,9 +284,8 @@ void policy_STCF(int analysis)
             //ADD COMPLETED JOB
 
             if(analysis){
-                results[shortest_job->id]=(int*)malloc(sizeof(int[4]));
+                
                 results[shortest_job->id][0]=shortest_job->id;
-                results[shortest_job->id][1]=current_time-shortest_job->arrival;
                 results[shortest_job->id][2]=turnaround_time;
                 results[shortest_job->id][3]=wait_time;
             }
@@ -287,28 +299,32 @@ void policy_STCF(int analysis)
             //FREE SHORTEST JOB AFTER ITS COMPLETED/CAN BE RMVD FRM JOB LIST
         }
     }
+    printf("End of execution with STCF.\n");
 
-    if (job_count>0){
-        //'if any jobs processed'
-        double avg_response_time=(double)total_response_time/job_count;
-        double avg_turnaround_time=(double)total_turnaround_time/job_count;
-        double avg_wait_time=(double)total_wait_time/job_count;
 
-        printf("Average -- Response: %.2f  Turnaround %.2f  Wait %.2f\n",avg_response_time,avg_turnaround_time,avg_wait_time);
-    }
     if (analysis) {
+        printf("Begin analyzing STCF:\n");
+
         if (results != NULL) {
             for (int i = 0; i < numofjobs; i++) {
                 if (results[i] != NULL) {
                     printf("Job %d -- Response time: %d  Turnaround: %d  Wait: %d\n", results[i][0], results[i][1], results[i][2], results[i][3]);
                     free(results[i]);
+                }
+            }
+            free(results);
+
+            if (job_count>0){
+                //'if any jobs processed'
+                double avg_response_time=(double)total_response_time/job_count;
+                double avg_turnaround_time=(double)total_turnaround_time/job_count;
+                double avg_wait_time=(double)total_wait_time/job_count;
+
+                printf("Average -- Response: %.2f  Turnaround %.2f  Wait %.2f\n",avg_response_time,avg_turnaround_time,avg_wait_time);
             }
         }
-        free(results);
+        printf("End analyzing STCF.\n");
     }
-    printf("End analyzing STCF.\n");
-}
-printf("End of execution with STCF.\n");
 }
 
 
