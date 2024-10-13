@@ -20,10 +20,9 @@ struct job
     int tickets; // number of tickets for lottery scheduling
     // TODO: add any other metadata you need to track here
     struct job *next;
-
-    //added by issy
  
     int original_length;
+    int old_length;
 };
 
 // the workload list
@@ -42,6 +41,7 @@ void append_to(struct job **head_pointer, int arrival, int length, int tickets)
     //ADDED
 
     new->original_length = length;
+    new->old_length = length;
 
     if (*head_pointer == NULL)
     {
@@ -219,9 +219,9 @@ void policy_STCF(int analysis)
     }
     //ARRAY OF PTRS
 
-    int lastJobId = -1;
+    struct job *lastJob = NULL;
 
-    while (head!=NULL){
+    while (head!=NULL || lastJob!=NULL){
         //continues until all jobs are processed!!!
         struct job *shortest_job=NULL;
         struct job *prev=NULL;
@@ -242,36 +242,66 @@ void policy_STCF(int analysis)
     
         }
         
-        if(shortest_job==NULL || shortest_job->arrival>current_time){
-            current_time++;
-            continue;
-        }
         //IF NO JOBS ARRIVED - ADD AND RELOOP
+        if (head!=NULL && lastJob==NULL) {
+            if(shortest_job==NULL){
+                current_time++;
+                continue;
+            } else if (shortest_job->arrival>current_time) { 
+                current_time=shortest_job->arrival;
+                continue;
+            }
+        }
 
         if (analysis){
-            if (results[shortest_job->id]==NULL) {
-                results[shortest_job->id]=(int*)malloc(sizeof(int[4]));
-                int response_time=current_time-shortest_job->arrival;
-                results[shortest_job->id][1]=response_time;
+            struct job* ptr = shortest_job;
+            if (shortest_job==NULL) {
+                ptr = lastJob;
+            }
+            if (results[ptr->id]==NULL) {
+                results[ptr->id]=(int*)malloc(sizeof(int[4]));
+                int response_time=current_time-ptr->arrival;
+                results[ptr->id][1]=response_time;
             }
         }
 
-        if (shortest_job->length >0){
-            //IF SHORTEST JOB NOT DONE/HAS REMAINING TIME...
-            if(shortest_job->length == shortest_job->original_length){
-                total_response_time+=current_time-shortest_job->arrival;
+
+        if (lastJob!=shortest_job && lastJob!=NULL){
+            int ranfor = lastJob->old_length - lastJob->length;
+            int id = lastJob->id;
+            int arrival_time = lastJob->arrival;
+            int time = current_time - ranfor;
+            printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n", time, id, arrival_time, ranfor);
+            if (lastJob->length <= 0) {
+                free(lastJob);
+                lastJob = NULL;
+            } else {
+                lastJob->old_length -= ranfor;
+            }
+         }
     
+        if (head == NULL) {
+            break;
+        }
+
+        //IF SHORTEST JOB NOT DONE/HAS REMAINING TIME...
+        if (shortest_job == NULL){
+            continue;
+        }
+        
+        if (shortest_job->length >0){
+            if(shortest_job->length == shortest_job->original_length){
                 //ADD RESPONSE TIME OF SHORTEST JOB IF IT HASNT YET RUN- THIS IS FIRST TIME RUNNING
+                total_response_time+=current_time-shortest_job->arrival;
             }
-            if (lastJobId!=shortest_job->id){
-                //IF LAST JOB IS NOT THE SAME AS CURRENT JOB
-                printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n",current_time,shortest_job->id,shortest_job->arrival,shortest_job->length);
-            }
-            shortest_job->length--;
-            lastJobId = shortest_job->id;
+
             //DECREMENT REMAINING LENGTH
+            shortest_job->length--;
+            lastJob = shortest_job;
             current_time++;
         }
+
+
         if(shortest_job->length==0){
             //IF JOB COMPLETE..
             int turnaround_time = current_time - shortest_job->arrival;
@@ -295,8 +325,6 @@ void policy_STCF(int analysis)
             else{
                 old_shortest->next=shortest_job->next;
             }
-            free(shortest_job);
-            //FREE SHORTEST JOB AFTER ITS COMPLETED/CAN BE RMVD FRM JOB LIST
         }
     }
     printf("End of execution with STCF.\n");
