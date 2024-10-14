@@ -487,6 +487,81 @@ void policy_LT(int slice)
 
     // Leave this here, it will ensure the scheduling behavior remains deterministic
     srand(42);
+    
+    int current_time=0;
+    struct job *ptr=head;
+    int total_tickets=0;
+    //total ticket among ALL JOBS
+
+    while (ptr!=NULL){
+        total_tickets+=ptr->tickets;
+        //iterate thru all jobs and add tickets
+        ptr=ptr->next;
+    }
+
+    while(head!=NULL){
+        //as long as jobs remaining.. duh
+
+        total_tickets=0;
+        ptr=head;
+        while(ptr!=NULL&&ptr->arrival<=current_time){ 
+            total_tickets+=ptr->tickets;
+            ptr=ptr->next;
+        }
+
+        if(total_tickets==0){
+            current_time++;
+            continue;
+        }
+
+        int winning_ticket=rand()%total_tickets;
+        //winning ticket is chosen as random number between 0 and total tickets- were told to use this
+        struct job *winning_job=head;
+        //winning job is head by dflt
+        struct job *prev=NULL;
+        //job before job before winning job
+        struct job *prev_winning_job =NULL;
+        //job before winning job
+        //(prev->prev_winning_job->winning_job)
+        int ticket_sum= 0;
+        //used to keep track of ticket sum as we traverse LL
+    
+        for(ptr=head;ptr!=NULL&&ptr->arrival<= current_time; ptr=ptr->next){
+            ticket_sum+=ptr->tickets;
+            //add tickets of each job to total
+            if (ticket_sum>winning_ticket){
+                winning_job=ptr;
+                prev_winning_job=prev;
+                break;
+            }
+            prev=ptr;
+            //iterate prev aswell as ptr which is done in for
+        }
+
+        int rt=min(slice, winning_job->length);
+        //either runs for the given slice or until cmpletion if theres < slice left
+        printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n", current_time, winning_job->id, winning_job->arrival, rt);
+        winning_job->length-=rt;
+        //decrememt time by how much it ran
+        current_time+=rt;
+        //increment time by how much winning job just ran
+
+        if(winning_job->length<=0){
+            //if winning job completed execution
+            if(prev_winning_job==NULL){
+                //winning job is head
+                head=winning_job->next;            
+            }else{
+                prev_winning_job->next=winning_job->next;
+                //skips over where winning job was
+            }
+            total_tickets-=winning_job->tickets;
+            //remove num tickets winning job had from total- dont want null winning..
+            free(winning_job);
+
+        }
+
+    } 
 
     // In the following, you'll need to:
     // Figure out which active job to run first
