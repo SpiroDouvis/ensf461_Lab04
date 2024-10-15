@@ -481,7 +481,7 @@ void policy_RR(int slice, int analysis)
     }
 }
 
-void policy_LT(int slice)
+void policy_LT(int slice, int analysis)
 {
     printf("Execution trace with LT:\n");
 
@@ -492,6 +492,22 @@ void policy_LT(int slice)
     struct job *ptr=head;
     int total_tickets=0;
     //total ticket among ALL JOBS
+
+
+    int total_response_time = 0;
+    int total_turnaround_time = 0;
+    int total_wait_time = 0;
+    int job_count = 0;
+
+    int** results;
+    if (analysis)
+        results = (int**)malloc(sizeof(int*) * numofjobs);
+
+    for (int i = 0; i < numofjobs; i++) {
+        if (analysis) {
+            results[i] = NULL;
+        }
+    }
 
     while (ptr!=NULL){
         total_tickets+=ptr->tickets;
@@ -539,6 +555,16 @@ void policy_LT(int slice)
         }
 
         int rt=min(slice, winning_job->length);
+
+        if (analysis) {
+            if (results[winning_job->id] == NULL) {
+                results[winning_job->id] = (int*)malloc(sizeof(int[4]));
+                int response_time = current_time - winning_job->arrival;
+                results[winning_job->id][0] = winning_job->id;
+                results[winning_job->id][1] = response_time;
+                total_response_time += response_time;
+            }
+        }
         //either runs for the given slice or until cmpletion if theres < slice left
         printf("t=%d: [Job %d] arrived at [%d], ran for: [%d]\n", current_time, winning_job->id, winning_job->arrival, rt);
         winning_job->length-=rt;
@@ -548,6 +574,22 @@ void policy_LT(int slice)
 
         if(winning_job->length<=0){
             //if winning job completed execution
+            int turnaround_time=current_time-winning_job->arrival;
+            int wait_time=turnaround_time-winning_job->original_length;
+            if (analysis) {
+                if (results[winning_job->id] == NULL) {
+                    results[winning_job->id] = (int*)malloc(sizeof(int[4]));
+                    int response_time = current_time - winning_job->arrival;
+                    total_response_time += response_time;
+                    results[winning_job->id][0] = winning_job->id;
+                    results[winning_job->id][1] = response_time;
+                }
+                results[winning_job->id][2] = turnaround_time;
+                results[winning_job->id][3] = wait_time;
+                total_turnaround_time += turnaround_time;
+                total_wait_time += wait_time;
+                job_count++;
+            }
             if(prev_winning_job==NULL){
                 //winning job is head
                 head=winning_job->next;            
@@ -558,9 +600,7 @@ void policy_LT(int slice)
             total_tickets-=winning_job->tickets;
             //remove num tickets winning job had from total- dont want null winning..
             free(winning_job);
-
         }
-
     } 
 
     // In the following, you'll need to:
@@ -573,6 +613,26 @@ void policy_LT(int slice)
     // And pick the winning job using the linked list approach discussed in class, or equivalent
 
     printf("End of execution with LT.\n");
+
+    if (analysis) {
+        printf("Begin analyzing LT:\n");
+
+        for (int i = 0; i < numofjobs; i++) {
+            printf("Job %d -- Response time: %d  Turnaround: %d  Wait: %d\n",
+                results[i][0], results[i][1], results[i][2], results[i][3]);
+            free(results[i]);
+        }
+        free(results);
+
+        double avg_response_time = (double)total_response_time / job_count;
+        double avg_turnaround_time = (double)total_turnaround_time / job_count;
+        double avg_wait_time = (double)total_wait_time / job_count;
+
+        printf("Average -- Response: %.2f  Turnaround %.2f  Wait %.2f\n",
+            avg_response_time, avg_turnaround_time, avg_wait_time);
+
+        printf("End analyzing LT.\n");
+    }
 }
 
 void policy_FIFO(int analysis)
@@ -699,7 +759,7 @@ int main(int argc, char **argv)
     }
     else if (strcmp(pname, "LT") == 0)
     {
-        // TODO
+        policy_LT(slice, analysis);
     }
 
     exit(0);
