@@ -1,3 +1,7 @@
+//GROUP 05 
+//2024-10-14
+//ENSF461-LAB04
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
